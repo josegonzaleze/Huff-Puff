@@ -1,3 +1,4 @@
+// Authors: Jose Gonzales and Nathan Burner
 
 //Note: This program only gets the count of the characters. counts how many 'a', 'b' etc
 #include<fstream>
@@ -56,12 +57,16 @@ int main() {
 	cout << "HEXDUMP FOR FILE: " << fileName << endl << endl;
 
 	//Array that contains all the characters.
-	int charCount[255];
+	/******************************************* 
+		Ask Jose about this variable, crashed at the end of the program when set to 255,
+		works fine with 256. Error was "Stack around the variable charCount was corrupted" 
+	********************************************/
+	int charCount[256];
 	//Initializing to 0 since list is empty
 	for (int i = 0; i <= 255; i++) {
 		charCount[i] = 0;
 	}
-	int number;
+	//int number;
 	while (!fin.eof())
 	{
 
@@ -85,11 +90,14 @@ int main() {
 
 	//Display of all the repetitions
 	for (int i = 0; i <= 255; i++) {
-		cout << "Index " << i << " = " << charCount[i] << endl;
+
+		if (charCount[i] > 0)
+		{
+			cout << "Index " << i << " = " << charCount[i] << endl;
+		}
 	}
 
 	fin.close();
 	fout.close();
-	system("PAUSE");
 	return 0;
 }
