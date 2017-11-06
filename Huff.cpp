@@ -5,6 +5,7 @@
 #include<string>
 #include<vector>
 #include<queue>
+#include<algorithm>
 //#include<functional>
 
 
@@ -79,7 +80,7 @@ int main() {
 		
 	}
 	//Adding the desired extension to the file
-	outputFile += ".huff";
+	outputFile += ".huf";
 
 	//--Creating input file:
 	ifstream fin(fileName, ios::binary);
@@ -223,9 +224,8 @@ int main() {
 
 
 	//*****AT THIS POINT WE HAVE OUR MIN HEAP***//
-	for (int i = 0; i < huffmanGlyphCount; i++) {
-		cout << huffmanArray[i].glyph << " " << huffmanArray[i].count << " " << huffmanArray[i].left << " " << huffmanArray[i].right << endl;
-	}
+	
+
 	//******HUFFMAN ALGORITHM!!*****//
 	int m = 0;
 	int h = huffmanGlyphCount - 1;
@@ -353,9 +353,7 @@ int main() {
 		h--;
 		f++;
 	}
-	for (int i = 0; i < huffmanGlyphCount*2 -1; i++) {
-		cout << huffmanArray[i].glyph << " " << huffmanArray[i].count << " " << huffmanArray[i].left << " " << huffmanArray[i].right << endl;
-	}
+
 	//***AT THIS POINT WE HAVE THE ARRAY READY TO BE WRITTEN TO FILE**//
 
 
@@ -364,13 +362,6 @@ int main() {
 	int index = 0;
 	printHuffman(index, huffmanGlyphCount*2 -1, code);
 
-	//Show the codes:
-	for (int i = 0; i < 258; i++) {
-		if (huffmanCodes[i] != "2") {
-			cout << huffmanCodes[i] << endl;
-		}
-		
-	}
 
 	//****AT THIS POINT WE HAVE THE HUFFMAN CODES IN AN ARRAY WHICH INDEX IS THE GLYPH FOR SUCH CODE****//
 
@@ -398,13 +389,17 @@ int main() {
 		fout.flush();
 	}
 
+	cout << "Working... This may take a long time... be patient" << endl;
 	//Write the encoded glyphs
-	string binaryCode = "";
+	string binaryCodeRead = "";
 	fin.clear();
 	fin.seekg(0, ios::beg);
+	string listOfCodes = "";
+	string byteLenghtCode = "";
 	while (!fin.eof()) {
 
-		fin.read((char*)buffer,16);
+		binaryCodeRead = "";
+		fin.read((char*)buffer, 8);
 
 		//Check how many bytes were read
 		streamsize size = fin.gcount();
@@ -413,27 +408,33 @@ int main() {
 			//create the string code
 			for (int i = 0; i < size; i++) {
 
-				binaryCode = binaryCode + huffmanCodes[(int)buffer[i]];
+				binaryCodeRead = binaryCodeRead + huffmanCodes[(int)buffer[i]];
 			}
 
 			//Adding the eof
-			binaryCode = binaryCode + huffmanCodes[256];
+			if (fin.eof()) {
+				binaryCodeRead = binaryCodeRead + huffmanCodes[256];
+			}
 
-			//get one byte (8 bits?)
-			char binaryCode_group[9] = "00000000";
-			bool notLast = true;
-			while (binaryCode.size() > 1 && notLast) {
+			listOfCodes = listOfCodes + binaryCodeRead;
 
-				if (!(!fin.eof())) {
-					notLast = false;
-				}else if (binaryCode.size() <= 8){
-					//Reset of the group
-					for (int i = 0; i < 9; i++) {
-						binaryCode_group[i] = '0';
-					}
-					for (int i = 0; i < binaryCode.size(); i++) {
+			if (listOfCodes.size() < 8) {
+				//Keep looping until we get 8
 
-						binaryCode_group[i] = binaryCode[i];
+				//but if it is the eof we need to work with what we got
+				if (fin.eof()) {
+					//Get the first 8 to write to file
+					byteLenghtCode = listOfCodes.substr(0, 8);
+					//reverse(byteLenghtCode.begin(),byteLenghtCode.end());
+
+					//Time to write to file
+					//get one byte
+					char binaryCode_group[9] = "00000000";
+					bool notLast = true;
+
+					for (int i = 0; i < byteLenghtCode.size(); i++) {
+
+						binaryCode_group[i] = byteLenghtCode[i];
 					}
 
 					//byte to be encoded
@@ -453,41 +454,117 @@ int main() {
 					}
 
 					fout.write((char*)&byte1, sizeof byte1);
-					notLast = false;
-				}
-				else {
-
-					//Chop the first 8 bits.
-					for (int i = 0; i < 8; i++) {
-						binaryCode_group[i] = binaryCode[i];
-					}
-
-					//Now that we have the first 8, let us delete them from the string.
-					binaryCode.erase(0, 8);
-
-					//byte to be encoded
-					unsigned char byte1 = '\0';
-					//length of huffman code
-					int bitstringLength = strlen(binaryCode_group);
-
-					//building an encoded byte from right to left
-					int cnt = 0;
-					for (int i = 0; i < bitstringLength; i++)
-					{
-						//is the bit "on"?
-						if (binaryCode_group[i] == '1')
-							//turn the bit on using the OR bitwise operator
-							byte1 = byte1 | (int)pow(2.0, cnt);
-						cnt++;
-					}
-
-					fout.write((char*)&byte1, sizeof byte1);
+					listOfCodes.erase(0, listOfCodes.size());
 				}
 			}
+			else {
+				//Get the first 8 to write to file
+				byteLenghtCode = listOfCodes.substr(0,listOfCodes.size());
+				//reverse(byteLenghtCode.begin(),byteLenghtCode.end());
+
+				//Time to write to file
+				//get one byte
+				char binaryCode_group[9] = "00000000";
+				bool notLast = true;
+
+						for (int i = 0; i < 8; i++) {
+
+							binaryCode_group[i] = byteLenghtCode[i];
+						}
+
+						//byte to be encoded
+						unsigned char byte1 = '\0';
+						//length of huffman code
+						int bitstringLength = strlen(binaryCode_group);
+
+						//building an encoded byte from right to left
+						int cnt = 0;
+						for (int i = 0; i < 8; i++)
+						{
+							//is the bit "on"?
+							if (binaryCode_group[i] == '1')
+								//turn the bit on using the OR bitwise operator
+								byte1 = byte1 | (int)pow(2.0, cnt);
+							cnt++;
+						}
+
+						fout.write((char*)&byte1, sizeof byte1);
+						listOfCodes.erase(0, 8);
+			}
 		}
-		binaryCode.clear();
 	}
-	
+	while(listOfCodes.size() != 0) {
+
+		if (listOfCodes.size() < 8) {
+			
+				//Get the first 8 to write to file
+				byteLenghtCode = listOfCodes.substr(0, listOfCodes.size());
+				//reverse(byteLenghtCode.begin(),byteLenghtCode.end());
+
+				//Time to write to file
+				//get one byte
+				char binaryCode_group[9] = "00000000";
+				bool notLast = true;
+
+				for (int i = 0; i < byteLenghtCode.size(); i++) {
+
+					binaryCode_group[i] = byteLenghtCode[i];
+				}
+
+				//byte to be encoded
+				unsigned char byte1 = '\0';
+				//length of huffman code
+				int bitstringLength = strlen(binaryCode_group);
+
+				//building an encoded byte from right to left
+				int cnt = 0;
+				for (int i = 0; i < 9; i++)
+				{
+					//is the bit "on"?
+					if (binaryCode_group[i] == '1')
+						//turn the bit on using the OR bitwise operator
+						byte1 = byte1 | (int)pow(2.0, cnt);
+					cnt++;
+				}
+
+				fout.write((char*)&byte1, sizeof byte1);
+				listOfCodes.erase(0, listOfCodes.size());
+		}
+		else {
+			//Get the first 8 to write to file
+			byteLenghtCode = listOfCodes.substr(0, 8);
+			//reverse(byteLenghtCode.begin(),byteLenghtCode.end());
+
+			//Time to write to file
+			//get one byte
+			char binaryCode_group[9] = "00000000";
+			bool notLast = true;
+
+			for (int i = 0; i < 8; i++) {
+
+				binaryCode_group[i] = byteLenghtCode[i];
+			}
+
+			//byte to be encoded
+			unsigned char byte1 = '\0';
+			//length of huffman code
+			int bitstringLength = strlen(binaryCode_group);
+
+			//building an encoded byte from right to left
+			int cnt = 0;
+			for (int i = 0; i < 8; i++)
+			{
+				//is the bit "on"?
+				if (binaryCode_group[i] == '1')
+					//turn the bit on using the OR bitwise operator
+					byte1 = byte1 | (int)pow(2.0, cnt);
+				cnt++;
+			}
+
+			fout.write((char*)&byte1, sizeof byte1);
+			listOfCodes.erase(0, 8);
+		}
+	}
 	
 	fin.close();
 	fout.close();
