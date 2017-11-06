@@ -1,3 +1,4 @@
+// Authors: Jose Gonzales and Nathan Burner
 #include<fstream>
 #include<iostream>
 #include<iomanip>
@@ -18,6 +19,27 @@ struct Huffman
 
 };
 
+//CREATION OF THE HUFMANN ARRAY//
+struct Huffman huffmanArray[513];
+int huffmanentries;
+string huffmanCodes[258];
+int codesCount = 0;
+
+void printHuffman(int index, int huffmanGlyphCount, string code) {
+	if (index > huffmanGlyphCount || index == -1) {
+		return;
+	}
+	if (huffmanArray[index].glyph != -1) {
+		//cout << huffmanArray[index].glyph << ": " << code << "\n";
+		//Save the code here
+		huffmanCodes[huffmanArray[index].glyph] = code;
+		codesCount++;
+		
+	}
+
+	printHuffman(huffmanArray[index].left, huffmanGlyphCount, code + "0");
+	printHuffman(huffmanArray[index].right, huffmanGlyphCount, code + "1");
+}
 int main() {
 
 	char fileName[80];
@@ -47,7 +69,15 @@ int main() {
 			outputFile += fileName[i];
 		}
 	}
-
+	//Getting a string of the original name
+	string inputFile = "";
+	for (int i = 0; i < sizeof(fileName); i++) {
+		if (fileName[i] != '\0') 
+			inputFile = inputFile + fileName[i];
+		else
+			i = sizeof(fileName) - 1;
+		
+	}
 	//Adding the desired extension to the file
 	outputFile += ".huff";
 
@@ -59,7 +89,8 @@ int main() {
 		system("PAUSE");
 		return 0;
 	}
-	ofstream fout(outputFile);
+	//--Creating output file
+	ofstream fout(outputFile, ios::binary);
 
 	unsigned char buffer[16];
 	int hexCount = 0;
@@ -74,10 +105,23 @@ int main() {
 	for (int i = 0; i < 257; i++) {
 		glyphCount[i] = 0;
 	}
-
+	//Initializing to -1 on the huffman codes.
+	for (int i = 0; i < 258; i++) {
+		huffmanCodes[i] = "2";
+	}
 	int number;
+
+	/*Get the size of the file.
+	streamoff sizeOfFile = 0;
+	fin.seekg(0,fin.end);
+	sizeOfFile = fin.tellg();
+	fin.seekg(0);
+	int const x = (int)sizeOfFile;
+	int FileChar[x]*/;
+
 	while (!fin.eof())
 	{
+		
 		fin.read((char*)buffer, 16);
 
 		//Check how any bytes were read
@@ -115,8 +159,7 @@ int main() {
 
 
 	//***********************************************//
-	//CREATION OF THE HUFMANN ARRAY//
-	struct Huffman huffmanArray[513];
+
 	int huffmanGlyphCount = 0;
 	for (int i = 0; i < glyphNumber; i++) {
 		huffmanArray[i].glyph = glyph[i];
@@ -126,7 +169,7 @@ int main() {
 		huffmanGlyphCount++;
 	}
 	//Addding the eof
-	huffmanArray[huffmanGlyphCount].glyph = 257;
+	huffmanArray[huffmanGlyphCount].glyph = 256;
 	huffmanArray[huffmanGlyphCount].count = 1;
 	huffmanArray[huffmanGlyphCount].left = -1;
 	huffmanArray[huffmanGlyphCount].right = -1;
@@ -180,7 +223,7 @@ int main() {
 
 
 	//*****AT THIS POINT WE HAVE OUR MIN HEAP***//
-	for (int i = 0; i < huffmanGlyphCount * 2 - 1; i++) {
+	for (int i = 0; i < huffmanGlyphCount; i++) {
 		cout << huffmanArray[i].glyph << " " << huffmanArray[i].count << " " << huffmanArray[i].left << " " << huffmanArray[i].right << endl;
 	}
 	//******HUFFMAN ALGORITHM!!*****//
@@ -315,13 +358,140 @@ int main() {
 	}
 	//***AT THIS POINT WE HAVE THE ARRAY READY TO BE WRITTEN TO FILE**//
 
-	//Write:
-	//-- Size of Name of File
-	//-- Name of file
-	//-- Huffman table
-	//-- Huffman encoding
+
+	//Building the huffman codes:
+	string code;
+	int index = 0;
+	printHuffman(index, huffmanGlyphCount*2 -1, code);
+
+	//Show the codes:
+	for (int i = 0; i < 258; i++) {
+		if (huffmanCodes[i] != "2") {
+			cout << huffmanCodes[i] << endl;
+		}
+		
+	}
+
+	//****AT THIS POINT WE HAVE THE HUFFMAN CODES IN AN ARRAY WHICH INDEX IS THE GLYPH FOR SUCH CODE****//
+
+	//Writing to file.
+
+	//Writing the size of name
+	int nameSize = inputFile.size();
+	fout.write((char*)&nameSize,sizeof nameSize);
+	fout.flush();
+
+	//Writing name of file
+	fout.write(fileName, nameSize);
+	fout.flush();
+
+	//Writing name of Huffman Table entries.
+	int tableEntries = huffmanGlyphCount * 2 - 1;
+	fout.write((char*)&tableEntries, sizeof tableEntries);
+	fout.flush();
+
+	//Writing the Huffman table.
+	for (int i = 0; i < huffmanGlyphCount * 2 - 1; i++) {
+		fout.write((char*)&huffmanArray[i].glyph, sizeof huffmanArray[i].glyph);
+		fout.write((char*)&huffmanArray[i].left, sizeof huffmanArray[i].left);
+		fout.write((char*)&huffmanArray[i].right, sizeof huffmanArray[i].right);
+		fout.flush();
+	}
+
+	//Write the encoded glyphs
+	string binaryCode = "";
+	fin.clear();
+	fin.seekg(0, ios::beg);
+	while (!fin.eof()) {
+
+		fin.read((char*)buffer,16);
+
+		//Check how many bytes were read
+		streamsize size = fin.gcount();
+		if (size != 0) {
+
+			//create the string code
+			for (int i = 0; i < size; i++) {
+
+				binaryCode = binaryCode + huffmanCodes[(int)buffer[i]];
+			}
+
+			//Adding the eof
+			binaryCode = binaryCode + huffmanCodes[256];
+
+			//get one byte (8 bits?)
+			char binaryCode_group[9] = "00000000";
+			bool notLast = true;
+			while (binaryCode.size() > 1 && notLast) {
+
+				if (!(!fin.eof())) {
+					notLast = false;
+				}else if (binaryCode.size() <= 8){
+					//Reset of the group
+					for (int i = 0; i < 9; i++) {
+						binaryCode_group[i] = '0';
+					}
+					for (int i = 0; i < binaryCode.size(); i++) {
+
+						binaryCode_group[i] = binaryCode[i];
+					}
+
+					//byte to be encoded
+					unsigned char byte1 = '\0';
+					//length of huffman code
+					int bitstringLength = strlen(binaryCode_group);
+
+					//building an encoded byte from right to left
+					int cnt = 0;
+					for (int i = 0; i < 9; i++)
+					{
+						//is the bit "on"?
+						if (binaryCode_group[i] == '1')
+							//turn the bit on using the OR bitwise operator
+							byte1 = byte1 | (int)pow(2.0, cnt);
+						cnt++;
+					}
+
+					fout.write((char*)&byte1, sizeof byte1);
+					notLast = false;
+				}
+				else {
+
+					//Chop the first 8 bits.
+					for (int i = 0; i < 8; i++) {
+						binaryCode_group[i] = binaryCode[i];
+					}
+
+					//Now that we have the first 8, let us delete them from the string.
+					binaryCode.erase(0, 8);
+
+					//byte to be encoded
+					unsigned char byte1 = '\0';
+					//length of huffman code
+					int bitstringLength = strlen(binaryCode_group);
+
+					//building an encoded byte from right to left
+					int cnt = 0;
+					for (int i = 0; i < bitstringLength; i++)
+					{
+						//is the bit "on"?
+						if (binaryCode_group[i] == '1')
+							//turn the bit on using the OR bitwise operator
+							byte1 = byte1 | (int)pow(2.0, cnt);
+						cnt++;
+					}
+
+					fout.write((char*)&byte1, sizeof byte1);
+				}
+			}
+		}
+		binaryCode.clear();
+	}
+	
+	
 	fin.close();
 	fout.close();
 	system("PAUSE");
 	return 0;
 }
+
