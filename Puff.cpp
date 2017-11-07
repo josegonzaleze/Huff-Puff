@@ -20,14 +20,26 @@ const int NUM_GLYPHS = 257;
 struct Huffman huffmanArray[513];
 string huffmanCodes[NUM_GLYPHS];
 int codesCount = 0;
+ofstream fout;
+bool eof = false;
 
+// Function to reverse a string
+void reverseStr(string &str)
+{
+	int n = str.length();
+
+	// Swap character starting from two
+	// corners
+	for (int i = 0; i<n / 2; i++)
+		swap(str[i], str[n - i - 1]);
+}
 void translateBitString(string &bitString, int numEntries)
 {
 	int count = 0;
 	string temp = "";
 	bool isFound = false;
 	int stringLength = bitString.size();
-	
+	unsigned char iValue[1];
 	while (!isFound)
 	{
 		temp = temp + bitString[count];
@@ -39,10 +51,17 @@ void translateBitString(string &bitString, int numEntries)
 				if (i != 256)
 				{
 					// Write to file
-					cout << i << endl;
+					iValue[0] = i;
+					//cout << hex << iValue[0] << endl;
+					fout.write((char*)&iValue,1);
 					isFound = true;
 					bitString.erase(0, count + 1);
 					break;
+				}
+				else {
+					//This is the eof!!
+					eof = true;
+					isFound = true;
 				}
 			}
 		}
@@ -87,21 +106,29 @@ string binary(int num)
 	return temp;
 }
 
-void decodeHuffFile(ifstream &file, int numEntries)  
+void decodeHuffFile(ifstream &file, int numEntries)
 {
 	int stringLength = 0;
 	string bitString = "";
 	string tempString = "";
-	int byteToRead = 0;
+	unsigned int byteToRead = 0;
+	unsigned char byteToRead2[8];
 
-	while (!file.eof())
+	while (file.read((char*)&byteToRead, 1))
 	{
-		file.read((char*)&byteToRead, 1);
-		tempString = binary(byteToRead);
-		tempString = addPadding(tempString.size()) + tempString;
-		bitString += tempString;
+			tempString = "";
+			tempString = binary(byteToRead);
+			tempString = addPadding(tempString.size()) + tempString;
+			//swap the bits since it is right->left encoding.
+			reverseStr(tempString);
+			bitString += tempString;
+			translateBitString(bitString, numEntries);
+			byteToRead = 0;
+	}
+	while (bitString.size() != 0 && !eof) {
 		translateBitString(bitString, numEntries);
 	}
+
 }
 
 void printHuffman(int index, int huffmanGlyphCount, string code) {
@@ -143,6 +170,7 @@ int readFileHeader(ifstream &file)
 
 	file.read((char*)&numEntries, 4);
 
+	fout.open(fileName, ios::binary | ios::out);
 	return numEntries;
 }
 
@@ -157,4 +185,10 @@ void main()
 	populateHuffmanArray(hufFile, numEntries);
 	printHuffman(0, numEntries, "");
 	decodeHuffFile(hufFile, numEntries);
+	//Creating the outputfile
+
+	fout.flush();
+	hufFile.close();
+	fout.close();
+	system("pause");
 }
