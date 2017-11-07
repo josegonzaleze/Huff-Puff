@@ -396,10 +396,7 @@ int main() {
 	fin.seekg(0, ios::beg);
 	string listOfCodes = "";
 	string byteLenghtCode = "";
-	while (!fin.eof()) {
-
-		binaryCodeRead = "";
-		fin.read((char*)buffer, 8);
+	while (fin.read((char*)buffer, 1)) {
 
 		//Check how many bytes were read
 		streamsize size = fin.gcount();
@@ -423,8 +420,8 @@ int main() {
 
 				//but if it is the eof we need to work with what we got
 				if (fin.eof()) {
-					//Get the first 8 to write to file
-					byteLenghtCode = listOfCodes.substr(0, 8);
+					//Get the bits to write to file
+					byteLenghtCode = listOfCodes.substr(0, listOfCodes.size());
 					//reverse(byteLenghtCode.begin(),byteLenghtCode.end());
 
 					//Time to write to file
@@ -444,7 +441,7 @@ int main() {
 
 					//building an encoded byte from right to left
 					int cnt = 0;
-					for (int i = 0; i < 9; i++)
+					for (int i = 0; i < bitstringLength; i++)
 					{
 						//is the bit "on"?
 						if (binaryCode_group[i] == '1')
@@ -492,7 +489,11 @@ int main() {
 						listOfCodes.erase(0, 8);
 			}
 		}
+		binaryCodeRead = "";
 	}
+	//We finish reading...
+	listOfCodes = listOfCodes + huffmanCodes[256];
+
 	while(listOfCodes.size() != 0) {
 
 		if (listOfCodes.size() < 8) {
