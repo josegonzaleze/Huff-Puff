@@ -1,4 +1,4 @@
-// Authors: Jose Gonzales and Nathan Burner
+// Authors: Jose Gonzalez and Nathan Burner
 #include<fstream>
 #include<iostream>
 #include<iomanip>
@@ -6,6 +6,8 @@
 #include<vector>
 #include<queue>
 #include<algorithm>
+#include<ctime>
+
 //#include<functional>
 
 
@@ -35,19 +37,22 @@ void printHuffman(int index, int huffmanGlyphCount, string code) {
 		//Save the code here
 		huffmanCodes[huffmanArray[index].glyph] = code;
 		codesCount++;
-		
+
 	}
 
 	printHuffman(huffmanArray[index].left, huffmanGlyphCount, code + "0");
 	printHuffman(huffmanArray[index].right, huffmanGlyphCount, code + "1");
 }
-int main() {
+void main() {
 
 	char fileName[80];
 
 	cout << "Please enter the full file name: ";
 	cin.getline(fileName, 20);
 	cout << endl << "Name of file: " << fileName << endl;
+
+	clock_t start, end;
+	start = clock();
 
 	//Look for '.' on name given
 	int pointLocation;
@@ -73,11 +78,11 @@ int main() {
 	//Getting a string of the original name
 	string inputFile = "";
 	for (int i = 0; i < sizeof(fileName); i++) {
-		if (fileName[i] != '\0') 
+		if (fileName[i] != '\0')
 			inputFile = inputFile + fileName[i];
 		else
 			i = sizeof(fileName) - 1;
-		
+
 	}
 	//Adding the desired extension to the file
 	outputFile += ".huf";
@@ -88,7 +93,7 @@ int main() {
 		//If file was not found, exit the program
 		cout << "File does not exist, exiting..." << endl;
 		system("PAUSE");
-		return 0;
+		exit(1);
 	}
 	//--Creating output file
 	ofstream fout(outputFile, ios::binary);
@@ -122,7 +127,7 @@ int main() {
 
 	while (!fin.eof())
 	{
-		
+
 		fin.read((char*)buffer, 16);
 
 		//Check how any bytes were read
@@ -146,19 +151,6 @@ int main() {
 		}
 	}
 
-	//Display of all the repetitions
-	/*glyphNumber = 0;
-	for(int i = 0; i < 257; i++) {
-
-	if (glyphCount[i] != 0) {
-	cout << glyph[glyphNumber] << " = " << glyphCount[i] << endl;
-	glyphNumber++;
-	}
-	}
-	*/
-	//Computing the size
-
-
 	//***********************************************//
 
 	int huffmanGlyphCount = 0;
@@ -175,7 +167,7 @@ int main() {
 	huffmanArray[huffmanGlyphCount].left = -1;
 	huffmanArray[huffmanGlyphCount].right = -1;
 	huffmanGlyphCount++;
-	
+
 
 	//*****AT THIS POINT WE HAVE THE HUFFMAN INITIAL ARRAY*****//
 
@@ -224,7 +216,7 @@ int main() {
 
 
 	//*****AT THIS POINT WE HAVE OUR MIN HEAP***//
-	
+
 
 	//******HUFFMAN ALGORITHM!!*****//
 	int m = 0;
@@ -360,7 +352,7 @@ int main() {
 	//Building the huffman codes:
 	string code;
 	int index = 0;
-	printHuffman(index, huffmanGlyphCount*2 -1, code);
+	printHuffman(index, huffmanGlyphCount * 2 - 1, code);
 
 
 	//****AT THIS POINT WE HAVE THE HUFFMAN CODES IN AN ARRAY WHICH INDEX IS THE GLYPH FOR SUCH CODE****//
@@ -369,7 +361,7 @@ int main() {
 
 	//Writing the size of name
 	int nameSize = inputFile.size();
-	fout.write((char*)&nameSize,sizeof nameSize);
+	fout.write((char*)&nameSize, sizeof nameSize);
 	fout.flush();
 
 	//Writing name of file
@@ -456,49 +448,6 @@ int main() {
 			}
 			else {
 				//Get the first 8 to write to file
-				byteLenghtCode = listOfCodes.substr(0,listOfCodes.size());
-				//reverse(byteLenghtCode.begin(),byteLenghtCode.end());
-
-				//Time to write to file
-				//get one byte
-				char binaryCode_group[9] = "00000000";
-				bool notLast = true;
-
-						for (int i = 0; i < 8; i++) {
-
-							binaryCode_group[i] = byteLenghtCode[i];
-						}
-
-						//byte to be encoded
-						unsigned char byte1 = '\0';
-						//length of huffman code
-						int bitstringLength = strlen(binaryCode_group);
-
-						//building an encoded byte from right to left
-						int cnt = 0;
-						for (int i = 0; i < 8; i++)
-						{
-							//is the bit "on"?
-							if (binaryCode_group[i] == '1')
-								//turn the bit on using the OR bitwise operator
-								byte1 = byte1 | (int)pow(2.0, cnt);
-							cnt++;
-						}
-
-						fout.write((char*)&byte1, sizeof byte1);
-						listOfCodes.erase(0, 8);
-			}
-		}
-		binaryCodeRead = "";
-	}
-	//We finish reading...
-	listOfCodes = listOfCodes + huffmanCodes[256];
-
-	while(listOfCodes.size() != 0) {
-
-		if (listOfCodes.size() < 8) {
-			
-				//Get the first 8 to write to file
 				byteLenghtCode = listOfCodes.substr(0, listOfCodes.size());
 				//reverse(byteLenghtCode.begin(),byteLenghtCode.end());
 
@@ -507,7 +456,7 @@ int main() {
 				char binaryCode_group[9] = "00000000";
 				bool notLast = true;
 
-				for (int i = 0; i < byteLenghtCode.size(); i++) {
+				for (int i = 0; i < 8; i++) {
 
 					binaryCode_group[i] = byteLenghtCode[i];
 				}
@@ -519,7 +468,7 @@ int main() {
 
 				//building an encoded byte from right to left
 				int cnt = 0;
-				for (int i = 0; i < 9; i++)
+				for (int i = 0; i < 8; i++)
 				{
 					//is the bit "on"?
 					if (binaryCode_group[i] == '1')
@@ -529,7 +478,50 @@ int main() {
 				}
 
 				fout.write((char*)&byte1, sizeof byte1);
-				listOfCodes.erase(0, listOfCodes.size());
+				listOfCodes.erase(0, 8);
+			}
+		}
+		binaryCodeRead = "";
+	}
+	//We finish reading...
+	listOfCodes = listOfCodes + huffmanCodes[256];
+
+	while (listOfCodes.size() != 0) {
+
+		if (listOfCodes.size() < 8) {
+
+			//Get the first 8 to write to file
+			byteLenghtCode = listOfCodes.substr(0, listOfCodes.size());
+			//reverse(byteLenghtCode.begin(),byteLenghtCode.end());
+
+			//Time to write to file
+			//get one byte
+			char binaryCode_group[9] = "00000000";
+			bool notLast = true;
+
+			for (int i = 0; i < byteLenghtCode.size(); i++) {
+
+				binaryCode_group[i] = byteLenghtCode[i];
+			}
+
+			//byte to be encoded
+			unsigned char byte1 = '\0';
+			//length of huffman code
+			int bitstringLength = strlen(binaryCode_group);
+
+			//building an encoded byte from right to left
+			int cnt = 0;
+			for (int i = 0; i < 9; i++)
+			{
+				//is the bit "on"?
+				if (binaryCode_group[i] == '1')
+					//turn the bit on using the OR bitwise operator
+					byte1 = byte1 | (int)pow(2.0, cnt);
+				cnt++;
+			}
+
+			fout.write((char*)&byte1, sizeof byte1);
+			listOfCodes.erase(0, listOfCodes.size());
 		}
 		else {
 			//Get the first 8 to write to file
@@ -566,10 +558,12 @@ int main() {
 			listOfCodes.erase(0, 8);
 		}
 	}
-	
+
 	fin.close();
 	fout.close();
-	system("PAUSE");
-	return 0;
+	end = clock();
+	cout << "The time was " << (double(end - start) / CLOCKS_PER_SEC) << " seconds." << endl;
+	//system("pause");
+	//return 0;
 }
 
